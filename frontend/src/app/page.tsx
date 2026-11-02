@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 
+/**
+ * โครงสร้างข้อมูลรีวิวของหนังสือ
+ */
 interface Review {
   id: number;
   rating: number;
@@ -9,6 +12,9 @@ interface Review {
   bookId: number;
 }
 
+/**
+ * โครงสร้างข้อมูลหนังสือและรายการรีวิว
+ */
 interface Book {
   id: number;
   title: string;
@@ -20,35 +26,36 @@ interface Book {
 
 const API_BASE = "http://localhost:3000";
 
+/**
+ * คอมโพเนนต์หน้าหลักสำหรับแสดงผลและจัดการข้อมูลคลังหนังสือ (CRUD, อัปโหลดไฟล์ และรีวิว)
+ */
 export default function BookCatalogPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [message, setMessage] = useState<string>("");
 
-  // Form states สำหรับเพิ่ม/แก้ไขหนังสือ
   const [editingId, setEditingId] = useState<number | null>(null);
   const [title, setTitle] = useState<string>("");
   const [author, setAuthor] = useState<string>("");
   const [coverUrl, setCoverUrl] = useState<string>("");
   const [uploading, setUploading] = useState<boolean>(false);
 
-  // State สำหรับค้นหาหนังสือตาม ID (GET /books/:id)
   const [searchId, setSearchId] = useState<string>("");
-
-  // State สำหรับฟอร์มเพิ่มรีวิวของแต่ละเล่ม
   const [reviewInputs, setReviewInputs] = useState<{
     [bookId: number]: { rating: number; content: string };
   }>({});
 
-  // ดึงข้อมูลหนังสือทั้งหมด (GET /books)
+  /**
+   * ดึงข้อมูลหนังสือทั้งหมดจาก API (GET /books)
+   */
   const fetchBooks = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/books`);
       const data = await res.json();
       setBooks(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setMessage("❌ ไม่สามารถเชื่อมต่อกับ Backend API (http://localhost:3000) ได้");
+    } catch {
+      setMessage("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ API (http://localhost:3000) ได้");
     } finally {
       setLoading(false);
     }
@@ -58,32 +65,37 @@ export default function BookCatalogPage() {
     fetchBooks();
   }, []);
 
-  // ค้นหาหนังสือเล่มเดียวตาม ID (GET /books/:id)
+  /**
+   * ค้นหาข้อมูลหนังสือรายเล่มตามรหัส ID (GET /books/:id)
+   */
   const handleSearchById = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchId.trim()) {
       fetchBooks();
       return;
     }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/books/${searchId}`);
       if (res.status === 404) {
         setBooks([]);
-        setMessage(`⚠️ ไม่พบหนังสือรหัส ID: ${searchId} (404 Not Found)`);
+        setMessage(`ไม่พบข้อมูลหนังสือรหัส ID: ${searchId} (404 Not Found)`);
       } else if (res.ok) {
         const book = await res.json();
         setBooks([book]);
-        setMessage(`✅ พบข้อมูลหนังสือ ID: ${searchId} (200 OK)`);
+        setMessage(`พบข้อมูลหนังสือรหัส ID: ${searchId} (200 OK)`);
       }
     } catch {
-      setMessage("❌ เกิดข้อผิดพลาดในการดึงข้อมูลหนังสือ");
+      setMessage("เกิดข้อผิดพลาดในการดึงข้อมูลหนังสือ");
     } finally {
       setLoading(false);
     }
   };
 
-  // อัปโหลดไฟล์รูปปกหนังสือ (POST /upload)
+  /**
+   * อัปโหลดไฟล์รูปปกหนังสือไปยังเซิร์ฟเวอร์ (POST /upload)
+   */
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -102,28 +114,29 @@ export default function BookCatalogPage() {
       if (res.ok) {
         const data = await res.json();
         setCoverUrl(data.url);
-        setMessage("✅ อัปโหลดไฟล์รูปปกสำเร็จ!");
+        setMessage("อัปโหลดไฟล์รูปปกสำเร็จ");
       } else {
-        setMessage("❌ อัปโหลดไฟล์ไม่สำเร็จ");
+        setMessage("อัปโหลดไฟล์ไม่สำเร็จ");
       }
     } catch {
-      setMessage("❌ เกิดข้อผิดพลาดขณะอัปโหลดไฟล์");
+      setMessage("เกิดข้อผิดพลาดขณะอัปโหลดไฟล์");
     } finally {
       setUploading(false);
     }
   };
 
-  // บันทึกข้อมูลหนังสือ (POST /books หรือ PUT /books/:id)
+  /**
+   * บันทึกข้อมูลหนังสือใหม่ (POST /books) หรืออัปเดตข้อมูลหนังสือเดิม (PUT /books/:id)
+   */
   const handleSubmitBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !author.trim()) {
-      setMessage("⚠️ กรุณากรอกชื่อหนังสือและผู้แต่ง");
+      setMessage("กรุณากรอกชื่อหนังสือและผู้แต่งให้ครบถ้วน");
       return;
     }
 
     try {
       if (editingId !== null) {
-        // แก้ไขหนังสือ (PUT /books/:id)
         const res = await fetch(`${API_BASE}/books/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -135,12 +148,11 @@ export default function BookCatalogPage() {
         });
 
         if (res.ok) {
-          setMessage(`✅ แก้ไขหนังสือรหัส #${editingId} สำเร็จ (200 OK)`);
+          setMessage(`แก้ไขข้อมูลหนังสือรหัส #${editingId} สำเร็จ (200 OK)`);
           resetForm();
           fetchBooks();
         }
       } else {
-        // เพิ่มหนังสือใหม่ (POST /books)
         const res = await fetch(`${API_BASE}/books`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -152,17 +164,19 @@ export default function BookCatalogPage() {
         });
 
         if (res.status === 201) {
-          setMessage("✅ เพิ่มหนังสือใหม่สำเร็จ (201 Created)");
+          setMessage("เพิ่มข้อมูลหนังสือเล่มใหม่สำเร็จ (201 Created)");
           resetForm();
           fetchBooks();
         }
       }
     } catch {
-      setMessage("❌ ไม่สามารถบันทึกข้อมูลได้");
+      setMessage("ไม่สามารถบันทึกข้อมูลหนังสือได้");
     }
   };
 
-  // ตั้งค่าฟอร์มเพื่อแก้ไข
+  /**
+   * นำข้อมูลหนังสือที่เลือกมาแสดงในฟอร์มเพื่อเตรียมแก้ไข
+   */
   const startEditBook = (book: Book) => {
     setEditingId(book.id);
     setTitle(book.title);
@@ -171,6 +185,9 @@ export default function BookCatalogPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /**
+   * ล้างค่าในฟอร์มกลับเป็นค่าเริ่มต้น
+   */
   const resetForm = () => {
     setEditingId(null);
     setTitle("");
@@ -178,28 +195,32 @@ export default function BookCatalogPage() {
     setCoverUrl("");
   };
 
-  // ลบหนังสือ (DELETE /books/:id)
+  /**
+   * ลบข้อมูลหนังสือตามรหัส ID (DELETE /books/:id)
+   */
   const handleDeleteBook = async (id: number) => {
-    if (!confirm(`ต้องการลบหนังสือ ID #${id} ใช่หรือไม่?`)) return;
+    if (!confirm(`ยืนยันการลบหนังสือรหัส #${id} ใช่หรือไม่?`)) return;
 
     try {
       const res = await fetch(`${API_BASE}/books/${id}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        setMessage(`🗑️ ลบหนังสือ ID #${id} สำเร็จ (200 OK)`);
+        setMessage(`ลบข้อมูลหนังสือรหัส #${id} สำเร็จ (200 OK)`);
         fetchBooks();
       }
     } catch {
-      setMessage("❌ ไม่สามารถลบหนังสือได้");
+      setMessage("ไม่สามารถลบข้อมูลหนังสือได้");
     }
   };
 
-  // เพิ่มรีวิวให้หนังสือ (POST /books/:id/reviews)
+  /**
+   * บันทึกข้อมูลรีวิวใหม่ให้กับหนังสือที่ระบุ (POST /books/:id/reviews)
+   */
   const handleAddReview = async (bookId: number) => {
     const input = reviewInputs[bookId] || { rating: 5, content: "" };
     if (!input.content.trim()) {
-      setMessage("⚠️ กรุณาพิมพ์ข้อความรีวิวก่อนกดส่ง");
+      setMessage("กรุณากรอกข้อความรีวิวก่อนกดบันทึก");
       return;
     }
 
@@ -214,7 +235,7 @@ export default function BookCatalogPage() {
       });
 
       if (res.status === 201) {
-        setMessage(`⭐ เพิ่มรีวิวให้หนังสือ #${bookId} สำเร็จ (201 Created)`);
+        setMessage(`เพิ่มรีวิวสำหรับหนังสือรหัส #${bookId} สำเร็จ (201 Created)`);
         setReviewInputs((prev) => ({
           ...prev,
           [bookId]: { rating: 5, content: "" },
@@ -222,22 +243,20 @@ export default function BookCatalogPage() {
         fetchBooks();
       }
     } catch {
-      setMessage("❌ ไม่สามารถส่งรีวิวได้");
+      setMessage("ไม่สามารถบันทึกข้อมูลรีวิวได้");
     }
   };
 
   return (
     <div className="container">
-      {/* ส่วนหัวเว็บ */}
       <header className="header">
         <div>
-          <h1>📚 ระบบจัดการคลังหนังสือและรีวิว (Book Catalog)</h1>
-          <p>Next.js Frontend + Express.js + Prisma (SQLite) + File Upload</p>
+          <h1>ระบบจัดการคลังหนังสือและรีวิว (Book Catalog)</h1>
+          <p>Next.js Frontend เชื่อมต่อกับ Express.js, Prisma (SQLite) และระบบอัปโหลดไฟล์</p>
         </div>
-        <div className="status-badge">รวมทั้งหมด {books.length} เล่ม</div>
+        <div className="status-badge">จำนวนหนังสือทั้งหมด {books.length} เล่ม</div>
       </header>
 
-      {/* แถบแจ้งเตือนสถานะ */}
       {message && (
         <div
           style={{
@@ -258,18 +277,17 @@ export default function BookCatalogPage() {
             className="btn btn-secondary btn-sm"
             onClick={() => setMessage("")}
           >
-            ปิด
+            ปิดข้อความ
           </button>
         </div>
       )}
 
       <div className="grid-layout">
-        {/* คอลัมน์ซ้าย: ฟอร์มสร้าง/แก้ไขหนังสือ และอัปโหลดไฟล์ */}
         <div className="card">
           <h2>
             {editingId
-              ? `✏️ แก้ไขหนังสือ ID #${editingId}`
-              : "➕ เพิ่มหนังสือเล่มใหม่"}
+              ? `แก้ไขข้อมูลหนังสือรหัส #${editingId}`
+              : "เพิ่มหนังสือเล่มใหม่"}
           </h2>
           <form onSubmit={handleSubmitBook}>
             <div className="form-group">
@@ -277,7 +295,7 @@ export default function BookCatalogPage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="เช่น Clean Code"
+                placeholder="ระบุชื่อหนังสือ"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
@@ -289,7 +307,7 @@ export default function BookCatalogPage() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="เช่น Robert C. Martin"
+                placeholder="ระบุชื่อผู้แต่ง"
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
                 required
@@ -310,7 +328,7 @@ export default function BookCatalogPage() {
             </div>
 
             <div className="form-group">
-              <label>หรือระบุลิงก์รูปปก (Cover URL)</label>
+              <label>ลิงก์รูปปกหนังสือ (Cover URL)</label>
               <input
                 type="text"
                 className="form-control"
@@ -321,7 +339,7 @@ export default function BookCatalogPage() {
               {coverUrl && (
                 <img
                   src={coverUrl}
-                  alt="Preview"
+                  alt="ตัวอย่างรูปปกหนังสือ"
                   className="preview-img"
                 />
               )}
@@ -329,7 +347,7 @@ export default function BookCatalogPage() {
 
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "1.25rem" }}>
               <button type="submit" className="btn btn-primary">
-                {editingId ? "💾 บันทึกการแก้ไข (PUT)" : "🚀 เพิ่มหนังสือ (POST)"}
+                {editingId ? "บันทึกการแก้ไข (PUT)" : "เพิ่มหนังสือ (POST)"}
               </button>
               {editingId && (
                 <button
@@ -344,9 +362,7 @@ export default function BookCatalogPage() {
           </form>
         </div>
 
-        {/* คอลัมน์ขวา: ค้นหาและแสดงรายการหนังสือ + รีวิว */}
         <div>
-          {/* แถบค้นหาตาม ID (GET /books/:id) */}
           <div className="card" style={{ marginBottom: "1.5rem" }}>
             <form
               onSubmit={handleSearchById}
@@ -355,12 +371,16 @@ export default function BookCatalogPage() {
               <input
                 type="number"
                 className="form-control"
-                placeholder="ค้นหาหนังสือด้วยรหัส ID (เช่น 1)..."
+                placeholder="ค้นหาหนังสือด้วยรหัส ID (เช่น 1)"
                 value={searchId}
                 onChange={(e) => setSearchId(e.target.value)}
               />
-              <button type="submit" className="btn btn-primary" style={{ width: "auto", whiteSpace: "nowrap" }}>
-                🔍 ค้นหา ID
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ width: "auto", whiteSpace: "nowrap" }}
+              >
+                ค้นหาตาม ID
               </button>
               <button
                 type="button"
@@ -380,8 +400,11 @@ export default function BookCatalogPage() {
               กำลังโหลดข้อมูลหนังสือ...
             </div>
           ) : books.length === 0 ? (
-            <div className="card" style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}>
-              ยังไม่มีข้อมูลหนังสือ กรุณาเพิ่มหนังสือเล่มใหม่จากฟอร์มด้านซ้าย
+            <div
+              className="card"
+              style={{ textAlign: "center", padding: "3rem", color: "#64748b" }}
+            >
+              ยังไม่มีข้อมูลหนังสือในระบบ กรุณาเพิ่มหนังสือเล่มใหม่จากฟอร์มด้านซ้าย
             </div>
           ) : (
             <div className="books-grid">
@@ -399,17 +422,17 @@ export default function BookCatalogPage() {
                         className="book-cover"
                       />
                     ) : (
-                      <div className="book-cover">📖 ไม่มีรูปปก</div>
+                      <div className="book-cover">ไม่มีรูปปกหนังสือ</div>
                     )}
 
                     <div className="book-body">
                       <div className="book-title">
-                        #{book.id} {book.title}
+                        รหัส #{book.id} - {book.title}
                       </div>
                       <div className="book-meta">
-                        ✍️ ผู้แต่ง: <strong>{book.author}</strong>
+                        ผู้แต่ง: <strong>{book.author}</strong>
                         <br />
-                        📅 วันที่เพิ่ม:{" "}
+                        วันที่บันทึก:{" "}
                         {new Date(book.publishedAt).toLocaleDateString("th-TH")}
                       </div>
 
@@ -418,43 +441,46 @@ export default function BookCatalogPage() {
                           className="btn btn-warning btn-sm"
                           onClick={() => startEditBook(book)}
                         >
-                          ✏️ แก้ไข
+                          แก้ไข
                         </button>
                         <button
                           className="btn btn-danger btn-sm"
                           onClick={() => handleDeleteBook(book.id)}
                         >
-                          🗑️ ลบ
+                          ลบ
                         </button>
                       </div>
 
-                      {/* ส่วนแสดงและเพิ่มรีวิว (1-to-Many) */}
                       <div className="reviews-section">
                         <div className="reviews-title">
-                          💬 รีวิวหนังสือ ({book.reviews?.length || 0})
+                          รายการรีวิว ({book.reviews?.length || 0})
                         </div>
 
                         {book.reviews && book.reviews.length > 0 ? (
                           book.reviews.map((rev) => (
                             <div key={rev.id} className="review-item">
                               <span className="rating-stars">
-                                {"★".repeat(rev.rating)}
-                                {"☆".repeat(5 - rev.rating)}
+                                คะแนน {rev.rating}/5:
                               </span>
                               <span>{rev.content}</span>
                             </div>
                           ))
                         ) : (
-                          <div style={{ fontSize: "0.82rem", color: "#94a3b8", marginBottom: "0.5rem" }}>
+                          <div
+                            style={{
+                              fontSize: "0.82rem",
+                              color: "#94a3b8",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
                             ยังไม่มีรีวิวสำหรับหนังสือเล่มนี้
                           </div>
                         )}
 
-                        {/* ฟอร์มส่งรีวิวใหม่ */}
                         <div className="review-form">
                           <select
                             className="form-control"
-                            style={{ width: "80px", padding: "0.4rem" }}
+                            style={{ width: "95px", padding: "0.4rem" }}
                             value={revInput.rating}
                             onChange={(e) =>
                               setReviewInputs((prev) => ({
@@ -466,17 +492,17 @@ export default function BookCatalogPage() {
                               }))
                             }
                           >
-                            <option value={5}>5 ★</option>
-                            <option value={4}>4 ★</option>
-                            <option value={3}>3 ★</option>
-                            <option value={2}>2 ★</option>
-                            <option value={1}>1 ★</option>
+                            <option value={5}>5 คะแนน</option>
+                            <option value={4}>4 คะแนน</option>
+                            <option value={3}>3 คะแนน</option>
+                            <option value={2}>2 คะแนน</option>
+                            <option value={1}>1 คะแนน</option>
                           </select>
                           <input
                             type="text"
                             className="form-control"
                             style={{ padding: "0.4rem 0.6rem" }}
-                            placeholder="เขียนรีวิว..."
+                            placeholder="เขียนความคิดเห็นรีวิว..."
                             value={revInput.content}
                             onChange={(e) =>
                               setReviewInputs((prev) => ({
@@ -494,7 +520,7 @@ export default function BookCatalogPage() {
                             style={{ width: "auto" }}
                             onClick={() => handleAddReview(book.id)}
                           >
-                            ส่ง
+                            ส่งรีวิว
                           </button>
                         </div>
                       </div>
@@ -509,4 +535,3 @@ export default function BookCatalogPage() {
     </div>
   );
 }
-

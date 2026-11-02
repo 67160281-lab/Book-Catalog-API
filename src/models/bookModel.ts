@@ -1,3 +1,6 @@
+/**
+ * โครงสร้างข้อมูลรีวิวหนังสือ
+ */
 export interface Review {
   id: number;
   rating: number;
@@ -5,6 +8,9 @@ export interface Review {
   bookId: number;
 }
 
+/**
+ * โครงสร้างข้อมูลหนังสือและรายการรีวิวที่เกี่ยวข้อง
+ */
 export interface Book {
   id: number;
   title: string;

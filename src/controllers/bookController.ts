@@ -1,38 +1,48 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 
-// 1. GET /books - ดึงหนังสือทั้งหมด พร้อมรายการรีวิว (Nested list of reviews)
-export const getAllBooks = async (req: Request, res: Response) => {
+/**
+ * ดึงข้อมูลหนังสือทั้งหมดพร้อมรายการรีวิวของหนังสือแต่ละเล่ม
+ * @route GET /books
+ */
+export const getAllBooks = async (_req: Request, res: Response) => {
   try {
     const books = await prisma.book.findMany({
       include: { reviews: true }
     });
     res.status(200).json(books);
-  } catch (error) {
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลหนังสือ" });
+  } catch {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลหนังสือ' });
   }
 };
 
-// 2. GET /books/:id - ดึงหนังสือเล่มเดียวตาม ID พร้อมรายการรีวิว
+/**
+ * ดึงข้อมูลหนังสือรายเล่มตามรหัส ID พร้อมรายการรีวิว
+ * @route GET /books/:id
+ */
 export const getBookById = async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id as string);
+    const id = parseInt(req.params.id as string, 10);
     const book = await prisma.book.findUnique({
       where: { id },
       include: { reviews: true }
     });
 
     if (!book) {
-      res.status(404).json({ message: "ไม่พบข้อมูลหนังสือ" });
+      res.status(404).json({ message: 'ไม่พบข้อมูลหนังสือ' });
       return;
     }
+
     res.status(200).json(book);
-  } catch (error) {
-    res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลหนังสือ" });
+  } catch {
+    res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลหนังสือ' });
   }
 };
 
-// 3. POST /books - เพิ่มหนังสือใหม่
+/**
+ * สร้างข้อมูลหนังสือเล่มใหม่ลงในฐานข้อมูล
+ * @route POST /books
+ */
 export const createBook = async (req: Request, res: Response) => {
   try {
     const { title, author, publishedAt, coverUrl } = req.body;
@@ -45,20 +55,24 @@ export const createBook = async (req: Request, res: Response) => {
       },
       include: { reviews: true }
     });
+
     res.status(201).json(newBook);
-  } catch (error) {
-    res.status(400).json({ message: "ไม่สามารถสร้างข้อมูลหนังสือได้ กรุณาตรวจสอบข้อมูล" });
+  } catch {
+    res.status(400).json({ message: 'ไม่สามารถสร้างข้อมูลหนังสือได้ กรุณาตรวจสอบข้อมูล' });
   }
 };
 
-// 4. PUT /books/:id - แก้ไขข้อมูลหนังสือ
+/**
+ * แก้ไขข้อมูลหนังสือตามรหัส ID
+ * @route PUT /books/:id
+ */
 export const updateBook = async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id as string);
+    const id = parseInt(req.params.id as string, 10);
     const existingBook = await prisma.book.findUnique({ where: { id } });
 
     if (!existingBook) {
-      res.status(404).json({ message: "ไม่พบข้อมูลหนังสือ" });
+      res.status(404).json({ message: 'ไม่พบข้อมูลหนังสือ' });
       return;
     }
 
@@ -75,49 +89,56 @@ export const updateBook = async (req: Request, res: Response) => {
     });
 
     res.status(200).json(updatedBook);
-  } catch (error) {
-    res.status(400).json({ message: "ไม่สามารถแก้ไขข้อมูลหนังสือได้" });
+  } catch {
+    res.status(400).json({ message: 'ไม่สามารถแก้ไขข้อมูลหนังสือได้' });
   }
 };
 
-// 5. DELETE /books/:id - ลบหนังสือ
+/**
+ * ลบข้อมูลหนังสือตามรหัส ID
+ * @route DELETE /books/:id
+ */
 export const deleteBook = async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id as string);
+    const id = parseInt(req.params.id as string, 10);
     const existingBook = await prisma.book.findUnique({ where: { id } });
 
     if (!existingBook) {
-      res.status(404).json({ message: "ไม่พบข้อมูลหนังสือ" });
+      res.status(404).json({ message: 'ไม่พบข้อมูลหนังสือ' });
       return;
     }
 
     await prisma.book.delete({ where: { id } });
-    res.status(200).json({ message: "ลบข้อมูลหนังสือสำเร็จ" });
-  } catch (error) {
-    res.status(500).json({ message: "ไม่สามารถลบข้อมูลหนังสือได้" });
+    res.status(200).json({ message: 'ลบข้อมูลหนังสือสำเร็จ' });
+  } catch {
+    res.status(500).json({ message: 'ไม่สามารถลบข้อมูลหนังสือได้' });
   }
 };
 
-// 6. POST /books/:id/reviews (หรือ POST /reviews) - เพิ่มรีวิวให้กับหนังสือ (Practical Exercise ข้อ 3)
+/**
+ * เพิ่มข้อมูลรีวิวให้กับหนังสือตามรหัสหนังสือที่ระบุ
+ * @route POST /books/:id/reviews หรือ POST /reviews
+ */
 export const addReview = async (req: Request, res: Response) => {
   try {
-    // รองรับทั้งการส่ง bookId มาจาก URL (/books/:id/reviews) หรือส่งมาใน Body ({ bookId, rating, content })
-    const bookId = req.params.id ? parseInt(req.params.id as string) : parseInt(req.body.bookId);
+    const bookId = req.params.id
+      ? parseInt(req.params.id as string, 10)
+      : parseInt(req.body.bookId, 10);
     const { rating, content } = req.body;
 
     if (!bookId || isNaN(bookId)) {
-      res.status(400).json({ message: "กรุณาระบุ bookId" });
+      res.status(400).json({ message: 'กรุณาระบุรหัสหนังสือ (bookId)' });
       return;
     }
 
     if (rating === undefined || rating < 1 || rating > 5) {
-      res.status(400).json({ message: "คะแนนรีวิว (rating) ต้องอยู่ระหว่าง 1 ถึง 5" });
+      res.status(400).json({ message: 'คะแนนรีวิวต้องอยู่ระหว่าง 1 ถึง 5' });
       return;
     }
 
     const book = await prisma.book.findUnique({ where: { id: bookId } });
     if (!book) {
-      res.status(404).json({ message: "ไม่พบข้อมูลหนังสือที่ต้องการรีวิว" });
+      res.status(404).json({ message: 'ไม่พบข้อมูลหนังสือที่ต้องการรีวิว' });
       return;
     }
 
@@ -130,7 +151,7 @@ export const addReview = async (req: Request, res: Response) => {
     });
 
     res.status(201).json(newReview);
-  } catch (error) {
-    res.status(400).json({ message: "ไม่สามารถเพิ่มรีวิวได้" });
+  } catch {
+    res.status(400).json({ message: 'ไม่สามารถเพิ่มรีวิวได้' });
   }
 };

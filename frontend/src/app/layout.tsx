@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Book Catalog & Review System",
-  description: "Next.js Frontend connected to Express & Prisma SQLite API",
+  title: "ระบบจัดการคลังหนังสือและรีวิว (Book Catalog)",
+  description: "เว็บแอปพลิเคชันจัดการข้อมูลหนังสือและรีวิวด้วย Next.js และ Express API",
 };
 
+/**
+ * โครงร่างหลักของหน้าเว็บแอปพลิเคชัน (Root Layout)
+ */
 export default function RootLayout({
   children,
 }: {
@@ -17,4 +20,3 @@ export default function RootLayout({
     </html>
   );
 }
-
